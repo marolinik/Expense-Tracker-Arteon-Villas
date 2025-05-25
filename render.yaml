@@ -1,0 +1,22 @@
+databases:
+  - name: arteon-villas-db
+    databaseName: arteon_villas_expenses
+    user: arteon_user
+    plan: free
+
+services:
+  - type: web
+    name: arteon-villas-expense-tracker
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arteon-villas-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.0 
