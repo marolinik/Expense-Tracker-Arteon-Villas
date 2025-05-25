@@ -5,6 +5,7 @@ from app import db
 from app.models import User, Expense
 from app.forms import LoginForm, ChangePasswordForm, ExpenseForm
 from sqlalchemy import func
+from decimal import Decimal
 
 main = Blueprint('main', __name__)
 
@@ -75,46 +76,35 @@ def dashboard():
     expenses = Expense.query.order_by(Expense.date_entered.desc()).all()
     
     # Calculate totals
-    total_expenses = sum(expense.amount_eur for expense in expenses)
+    total_expenses = float(sum(expense.amount_eur for expense in expenses))
     cost_per_person = total_expenses / 4 if total_expenses > 0 else 0
     
     # Calculate expenses by user
     user_expenses = db.session.query(
         User.full_name,
-        func.sum(Expense.amount_eur).label('total_paid'),
+        func.coalesce(func.sum(Expense.amount_eur), 0).label('total_paid'),
         func.count(Expense.id).label('expense_count')
-    ).join(
+    ).outerjoin(
         Expense, User.id == Expense.user_id
     ).group_by(
         User.id, User.full_name
     ).all()
     
-    # Calculate balance for each user (what they should pay vs what they paid)
+    # Calculate balance for each user
     user_balances = []
     for user_name, total_paid, expense_count in user_expenses:
-        balance = float(total_paid) - cost_per_person
+        # Convert to float, handling Decimal and None
+        total_paid_float = float(total_paid) if total_paid else 0
+        balance = total_paid_float - cost_per_person
+        
         user_balances.append({
             'name': user_name,
-            'total_paid': float(total_paid),
-            'expense_count': expense_count,
+            'total_paid': total_paid_float,
+            'expense_count': expense_count or 0,
             'balance': balance,
             'owes': -balance if balance < 0 else 0,
             'owed': balance if balance > 0 else 0
         })
-    
-    # Add users who haven't paid anything
-    users_with_expenses = [ub['name'] for ub in user_balances]
-    all_users = User.query.all()
-    for user in all_users:
-        if user.full_name not in users_with_expenses:
-            user_balances.append({
-                'name': user.full_name,
-                'total_paid': 0,
-                'expense_count': 0,
-                'balance': -cost_per_person,
-                'owes': cost_per_person,
-                'owed': 0
-            })
     
     # Sort by total paid (descending)
     user_balances.sort(key=lambda x: x['total_paid'], reverse=True)
@@ -131,46 +121,37 @@ def dashboard():
 @admin_required
 def admin():
     expenses = Expense.query.order_by(Expense.date_entered.desc()).all()
-    total_expenses = sum(expense.amount_eur for expense in expenses)
+    total_expenses = float(sum(expense.amount_eur for expense in expenses))
     cost_per_person = total_expenses / 4 if total_expenses > 0 else 0
     
-    # Calculate expenses by user (same as dashboard)
+    # Calculate expenses by user
     user_expenses = db.session.query(
         User.full_name,
-        func.sum(Expense.amount_eur).label('total_paid'),
+        func.coalesce(func.sum(Expense.amount_eur), 0).label('total_paid'),
         func.count(Expense.id).label('expense_count')
-    ).join(
+    ).outerjoin(
         Expense, User.id == Expense.user_id
     ).group_by(
         User.id, User.full_name
     ).all()
     
+    # Calculate balance for each user
     user_balances = []
     for user_name, total_paid, expense_count in user_expenses:
-        balance = float(total_paid) - cost_per_person
+        # Convert to float, handling Decimal and None
+        total_paid_float = float(total_paid) if total_paid else 0
+        balance = total_paid_float - cost_per_person
+        
         user_balances.append({
             'name': user_name,
-            'total_paid': float(total_paid),
-            'expense_count': expense_count,
+            'total_paid': total_paid_float,
+            'expense_count': expense_count or 0,
             'balance': balance,
             'owes': -balance if balance < 0 else 0,
             'owed': balance if balance > 0 else 0
         })
     
-    # Add users who haven't paid anything
-    users_with_expenses = [ub['name'] for ub in user_balances]
-    all_users = User.query.all()
-    for user in all_users:
-        if user.full_name not in users_with_expenses:
-            user_balances.append({
-                'name': user.full_name,
-                'total_paid': 0,
-                'expense_count': 0,
-                'balance': -cost_per_person,
-                'owes': cost_per_person,
-                'owed': 0
-            })
-    
+    # Sort by total paid (descending)
     user_balances.sort(key=lambda x: x['total_paid'], reverse=True)
     
     return render_template('admin.html',
