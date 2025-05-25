@@ -119,7 +119,7 @@ Follow the instructions below for local setup and development.
 
 8. **Run the application**:
    ```bash
-   python app.py
+   python run.py
    ```
 
 9. **Access the application**:
@@ -187,7 +187,7 @@ arteon-villas-expense-tracker/
 │   │   ├── dashboard.html
 │   │   └── admin.html
 │   └── static/             # Static files (CSS, JS)
-├── app.py                  # Application entry point
+├── run.py                  # Application entry point
 ├── config.py               # Configuration settings
 ├── init_db.py              # Database initialization script
 ├── setup_postgres.py       # PostgreSQL database setup helper
@@ -218,7 +218,7 @@ arteon-villas-expense-tracker/
    - Verify the database exists: `psql -U postgres -l`
    - Run `python setup_postgres.py` to create the database automatically
 
-2. **Port already in use**: If port 5000 is busy, you can change it in `app.py`
+2. **Port already in use**: If port 5000 is busy, you can change it in `run.py`
 
 3. **psycopg2 Installation Issues** (Windows):
    - If you have issues installing psycopg2, try: `pip install psycopg2-binary`
