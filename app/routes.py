@@ -4,6 +4,7 @@ from functools import wraps
 from app import db
 from app.models import User, Expense
 from app.forms import LoginForm, ChangePasswordForm, ExpenseForm
+from sqlalchemy import func
 
 main = Blueprint('main', __name__)
 
@@ -77,11 +78,53 @@ def dashboard():
     total_expenses = sum(expense.amount_eur for expense in expenses)
     cost_per_person = total_expenses / 4 if total_expenses > 0 else 0
     
+    # Calculate expenses by user
+    user_expenses = db.session.query(
+        User.full_name,
+        func.sum(Expense.amount_eur).label('total_paid'),
+        func.count(Expense.id).label('expense_count')
+    ).join(
+        Expense, User.id == Expense.user_id
+    ).group_by(
+        User.id, User.full_name
+    ).all()
+    
+    # Calculate balance for each user (what they should pay vs what they paid)
+    user_balances = []
+    for user_name, total_paid, expense_count in user_expenses:
+        balance = float(total_paid) - cost_per_person
+        user_balances.append({
+            'name': user_name,
+            'total_paid': float(total_paid),
+            'expense_count': expense_count,
+            'balance': balance,
+            'owes': -balance if balance < 0 else 0,
+            'owed': balance if balance > 0 else 0
+        })
+    
+    # Add users who haven't paid anything
+    users_with_expenses = [ub['name'] for ub in user_balances]
+    all_users = User.query.all()
+    for user in all_users:
+        if user.full_name not in users_with_expenses:
+            user_balances.append({
+                'name': user.full_name,
+                'total_paid': 0,
+                'expense_count': 0,
+                'balance': -cost_per_person,
+                'owes': cost_per_person,
+                'owed': 0
+            })
+    
+    # Sort by total paid (descending)
+    user_balances.sort(key=lambda x: x['total_paid'], reverse=True)
+    
     return render_template('dashboard.html', 
                          form=form, 
                          expenses=expenses,
                          total_expenses=total_expenses,
-                         cost_per_person=cost_per_person)
+                         cost_per_person=cost_per_person,
+                         user_balances=user_balances)
 
 @main.route('/admin')
 @login_required
@@ -91,10 +134,50 @@ def admin():
     total_expenses = sum(expense.amount_eur for expense in expenses)
     cost_per_person = total_expenses / 4 if total_expenses > 0 else 0
     
+    # Calculate expenses by user (same as dashboard)
+    user_expenses = db.session.query(
+        User.full_name,
+        func.sum(Expense.amount_eur).label('total_paid'),
+        func.count(Expense.id).label('expense_count')
+    ).join(
+        Expense, User.id == Expense.user_id
+    ).group_by(
+        User.id, User.full_name
+    ).all()
+    
+    user_balances = []
+    for user_name, total_paid, expense_count in user_expenses:
+        balance = float(total_paid) - cost_per_person
+        user_balances.append({
+            'name': user_name,
+            'total_paid': float(total_paid),
+            'expense_count': expense_count,
+            'balance': balance,
+            'owes': -balance if balance < 0 else 0,
+            'owed': balance if balance > 0 else 0
+        })
+    
+    # Add users who haven't paid anything
+    users_with_expenses = [ub['name'] for ub in user_balances]
+    all_users = User.query.all()
+    for user in all_users:
+        if user.full_name not in users_with_expenses:
+            user_balances.append({
+                'name': user.full_name,
+                'total_paid': 0,
+                'expense_count': 0,
+                'balance': -cost_per_person,
+                'owes': cost_per_person,
+                'owed': 0
+            })
+    
+    user_balances.sort(key=lambda x: x['total_paid'], reverse=True)
+    
     return render_template('admin.html',
                          expenses=expenses,
                          total_expenses=total_expenses,
-                         cost_per_person=cost_per_person)
+                         cost_per_person=cost_per_person,
+                         user_balances=user_balances)
 
 @main.route('/settle-expenses', methods=['POST'])
 @login_required
