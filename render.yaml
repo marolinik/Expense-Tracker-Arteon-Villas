@@ -2,7 +2,7 @@ databases:
   - name: arteon-villas-db
     databaseName: arteon_villas_expenses
     user: arteon_user
-    plan: starter
+    plan: basic-256mb
 
 services:
   - type: web
