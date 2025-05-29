@@ -115,6 +115,7 @@
                         <th>Note</th>
                         <th>Entered By</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -133,6 +134,19 @@
                                 <span class="badge bg-warning text-dark status-badge">
                                     <i class="bi bi-clock"></i> Unsettled
                                 </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.status == 'unsettled' %}
+                                <form method="POST" action="{{ url_for('main.settle_individual_expense', expense_id=expense.id) }}" 
+                                      style="display: inline;"
+                                      onsubmit="return confirm('Are you sure you want to settle this expense?');">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Settle Expense">
+                                        <i class="bi bi-check-circle"></i> Settle
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-secondary">Already Settled</span>
                             {% endif %}
                         </td>
                     </tr>

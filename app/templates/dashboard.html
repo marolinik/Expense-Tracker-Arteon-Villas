@@ -142,6 +142,7 @@
                         <th>Note</th>
                         <th>Entered By</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -156,6 +157,25 @@
                                 <span class="badge bg-success status-badge">Settled</span>
                             {% else %}
                                 <span class="badge bg-warning text-dark status-badge">Unsettled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if expense.user_id == current_user.id or current_user.is_admin %}
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('main.edit_expense', expense_id=expense.id) }}" 
+                                       class="btn btn-outline-primary btn-sm" title="Edit Expense">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('main.delete_expense', expense_id=expense.id) }}" 
+                                          style="display: inline;"
+                                          onsubmit="return confirm('Are you sure you want to delete this expense?');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Expense">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">-</span>
                             {% endif %}
                         </td>
                     </tr>

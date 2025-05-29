@@ -3,7 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
 from app import db
 from app.models import User, Expense
-from app.forms import LoginForm, ChangePasswordForm, ExpenseForm
+from app.forms import LoginForm, ChangePasswordForm, ExpenseForm, EditExpenseForm
 from sqlalchemy import func
 from decimal import Decimal
 
@@ -168,6 +168,61 @@ def settle_expenses():
     db.session.commit()
     flash('All expenses have been settled!', 'success')
     return redirect(url_for('main.admin'))
+
+@main.route('/settle-expense/<int:expense_id>', methods=['POST'])
+@login_required
+@admin_required
+def settle_individual_expense(expense_id):
+    expense = Expense.query.get_or_404(expense_id)
+    if expense.status == 'unsettled':
+        expense.status = 'settled'
+        db.session.commit()
+        flash(f'Expense of €{expense.amount_eur} has been settled!', 'success')
+    else:
+        flash('This expense is already settled.', 'info')
+    return redirect(request.referrer or url_for('main.admin'))
+
+@main.route('/edit-expense/<int:expense_id>', methods=['GET', 'POST'])
+@login_required
+def edit_expense(expense_id):
+    expense = Expense.query.get_or_404(expense_id)
+    
+    # Check if user can edit this expense (only their own expenses)
+    if expense.user_id != current_user.id and not current_user.is_admin:
+        flash('You can only edit your own expenses.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    form = EditExpenseForm()
+    
+    if form.validate_on_submit():
+        expense.amount_eur = form.amount_eur.data
+        expense.note = form.note.data
+        db.session.commit()
+        flash('Expense updated successfully!', 'success')
+        return redirect(url_for('main.dashboard'))
+    
+    # Pre-populate form with existing data
+    if request.method == 'GET':
+        form.expense_id.data = expense.id
+        form.amount_eur.data = expense.amount_eur
+        form.note.data = expense.note
+    
+    return render_template('edit_expense.html', form=form, expense=expense)
+
+@main.route('/delete-expense/<int:expense_id>', methods=['POST'])
+@login_required
+def delete_expense(expense_id):
+    expense = Expense.query.get_or_404(expense_id)
+    
+    # Check if user can delete this expense (only their own expenses or admin)
+    if expense.user_id != current_user.id and not current_user.is_admin:
+        flash('You can only delete your own expenses.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    db.session.delete(expense)
+    db.session.commit()
+    flash('Expense deleted successfully!', 'success')
+    return redirect(request.referrer or url_for('main.dashboard'))
 
 @main.route('/logout')
 @login_required

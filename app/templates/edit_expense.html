@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Expense - Arteon Villas Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil-square"></i> Edit Expense
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Display current expense details -->
+                <div class="alert alert-info mb-4">
+                    <h6><i class="bi bi-info-circle"></i> Current Expense Details:</h6>
+                    <p class="mb-1"><strong>Date:</strong> {{ expense.date_entered.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p class="mb-1"><strong>Amount:</strong> €{{ "%.2f"|format(expense.amount_eur) }}</p>
+                    <p class="mb-1"><strong>Note:</strong> {{ expense.note }}</p>
+                    <p class="mb-0"><strong>Status:</strong> 
+                        {% if expense.status == 'settled' %}
+                            <span class="badge bg-success">Settled</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Unsettled</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Edit form -->
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    {{ form.expense_id() }}
+                    
+                    <div class="mb-3">
+                        {{ form.amount_eur.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">€</span>
+                            {{ form.amount_eur(class="form-control", placeholder="0.00") }}
+                        </div>
+                        {% if form.amount_eur.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.amount_eur.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.note.label(class="form-label") }}
+                        {{ form.note(class="form-control", rows="3", placeholder="Description of the expense") }}
+                        {% if form.note.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.note.errors %}{{ error }}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

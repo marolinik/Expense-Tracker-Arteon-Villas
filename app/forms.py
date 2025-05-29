@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField, DecimalField, SubmitField
+from wtforms import StringField, PasswordField, TextAreaField, DecimalField, SubmitField, HiddenField
 from wtforms.validators import DataRequired, Email, EqualTo, NumberRange
 
 class LoginForm(FlaskForm):
@@ -17,4 +17,11 @@ class ExpenseForm(FlaskForm):
     amount_eur = DecimalField('Amount (EUR)', places=2, 
                              validators=[DataRequired(), NumberRange(min=0.01)])
     note = TextAreaField('Note', validators=[DataRequired()])
-    submit = SubmitField('Add Expense') 
+    submit = SubmitField('Add Expense')
+
+class EditExpenseForm(FlaskForm):
+    expense_id = HiddenField()
+    amount_eur = DecimalField('Amount (EUR)', places=2, 
+                             validators=[DataRequired(), NumberRange(min=0.01)])
+    note = TextAreaField('Note', validators=[DataRequired()])
+    submit = SubmitField('Update Expense') 
